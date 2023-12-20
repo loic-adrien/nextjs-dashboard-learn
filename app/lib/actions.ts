@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 
 import { redirect } from 'next/navigation';
 
+import { signIn } from '@/app/auth';
+import { AuthError } from 'next-auth';
+
 export type State = {
   errors?: {
     customerId?: string[];
@@ -41,8 +44,6 @@ export async function createInvoice(prevState: State, formData: FormData) {
         status: formData.get('status'),
       });
 
-      console.log(" Validate Field ", validatedFields)
-      console.log(" State ", prevState)
         // If form validation fails, return errors early. Otherwise, continue.
   if (!validatedFields.success) {
     return {
@@ -106,6 +107,7 @@ export async function updateInvoice(
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
+
 export async function deleteInvoice(id: string) {
   throw new Error('Failed to Delete Invoice');
   try {
@@ -115,4 +117,23 @@ export async function deleteInvoice(id: string) {
   }
 
   revalidatePath('/dashboard/invoices');
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
 }
